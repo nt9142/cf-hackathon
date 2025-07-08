@@ -1,10 +1,11 @@
 # Extended Cloudflare Agents Starter Kit
 
-This repo extends the [Cloudflare Agents Starter Kit](https://github.com/cloudflare/agents-starter) with additional features and tools. See below this readme for more information on the Agent Starter Kit. 
+This repo extends the [Cloudflare Agents Starter Kit](https://github.com/cloudflare/agents-starter) with additional features and tools. See below this readme for more information on the Agent Starter Kit.
 
 It includes the [Fiberplane AI Agent Playground](https://github.com/fiberplane/fiberplane/tree/main/packages/agents) to inspect your agent's state, memory and behaviour. Once you start the application the playground is available at the `/fp` endpoint. You can see the agent's state and memory there.
 
 Additionally, it includes tools to:
+
 - `add` and `delete` a **MCP server**
 - `set` and `forget` **memory** for the agent.
 
@@ -13,22 +14,27 @@ You can find the tool in the [src/tools.ts](/src/tools.ts) file.
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) (v18 or higher)
-- [pnpm](https://pnpm.io/) package manager  (or the one of your choice npm, yarn, etc)
-- Google Generative AI API key (get one from [Google AI](https://aistudio.google.com/apikey),  The great news is that Google provides a generous free tier for its AI API keys, which will be more than sufficient for the duration of this Hacknight and for most prototyping need )
+- [pnpm](https://pnpm.io/) package manager (or the one of your choice npm, yarn, etc)
+- Google Generative AI API key (get one from [Google AI](https://aistudio.google.com/apikey), The great news is that Google provides a generous free tier for its AI API keys, which will be more than sufficient for the duration of this Hacknight and for most prototyping need )
 - You can check out the different models from Google AI [here](https://ai.google.dev/gemini-api/docs/models)
 
 ## Quick Start
 
 1. Clone this repo
 2. Create a `.dev.vars` file in the root directory:
+
 ```
 GOOGLE_GENERATIVE_AI_API_KEY=your-key-goes-here
 ```
+
 3. Install dependencies:
+
 ```bash
 pnpm install
 ```
+
 4. Start the development server:
+
 ```bash
 pnpm start
 ```
@@ -41,17 +47,15 @@ Now you're ready to start hacking! Choose your path:
 
 1. Create a MCP server and add it to the agent
    - use Fiberplane's codegen to create a MCP server
-      -Join [Fiberplane's Discord](https://discord.gg/NarC9cf5vP) and share your GitHub handle in the `#codegen` channel. We will add you to the codegen platform.
-      - start prompting your MCP server
+     -Join [Fiberplane's Discord](https://discord.gg/NarC9cf5vP) and share your GitHub handle in the `#codegen` channel. We will add you to the codegen platform.
+     - start prompting your MCP server
    - add the MCP server to the agent by chatting with the agent and providing the URL of the MCP server
    - **Important:** Avoid MCP servers with authentication for now.
 2. Add new tools in [tools.ts](/src/tools.ts) to empower your agent to do more interesting things
 
-
 # 🤖 Cloudflare's Chat Agent Starter Kit
 
 ![agents-header](https://github.com/user-attachments/assets/f6d99eeb-1803-4495-9c5e-3cf07a37b402)
-
 
 A starter template for building AI-powered chat agents using Cloudflare's Agent platform, powered by [`agents`](https://www.npmjs.com/package/agents). This project provides a foundation for creating interactive chat experiences with AI, complete with a modern UI and tool integration capabilities.
 

@@ -15,11 +15,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Environment Setup
 
 The application requires a `.dev.vars` file in the root directory with:
+
 ```
 GOOGLE_GENERATIVE_AI_API_KEY=your-key-goes-here
 ```
 
 For production deployment, upload secrets using:
+
 ```bash
 wrangler secret bulk .dev.vars
 ```
@@ -45,6 +47,7 @@ This is a Cloudflare Workers-based AI chat agent built with:
 ### Agent System
 
 The agent uses a two-tier tool system:
+
 1. **Auto-execute tools** - Run immediately without user confirmation (e.g., `getLocalTime`, `scheduleTask`)
 2. **Confirmation-required tools** - Require human approval before execution (e.g., `getWeatherInformation`)
 
@@ -53,6 +56,7 @@ Tools requiring confirmation are defined without an `execute` function and have 
 ### MCP Server Integration
 
 The agent supports dynamic MCP (Model Context Protocol) server management:
+
 - Add/remove MCP servers at runtime
 - Automatic tool discovery from connected MCP servers
 - Memory management for agent state persistence
@@ -60,6 +64,7 @@ The agent supports dynamic MCP (Model Context Protocol) server management:
 ### Scheduling System
 
 Built-in task scheduling supports:
+
 - One-time scheduled tasks (specific date/time)
 - Delayed tasks (execute after X seconds)
 - Recurring tasks (cron patterns)

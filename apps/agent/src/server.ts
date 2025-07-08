@@ -12,7 +12,7 @@ import {
 } from "ai";
 //import { openai } from "@ai-sdk/openai";
 //import {anthropic} from "@ai-sdk/anthropic";
-import {google} from "@ai-sdk/google";
+import { google } from "@ai-sdk/google";
 import { processToolCalls } from "./utils";
 import { tools, executions } from "./tools";
 // import { env } from "cloudflare:workers";
@@ -54,6 +54,15 @@ export class ChatInternal extends AIChatAgent<Env> {
     // Create a streaming response that handles both text and tool outputs
     const dataStreamResponse = createDataStreamResponse({
       execute: async (dataStream) => {
+        console.log(
+          "prompt",
+          `You are a helpful assistant that can do various tasks... 
+
+${unstable_getSchedulePrompt({ date: new Date() })}
+
+If the user asks to schedule a task, use the schedule tool to schedule the task.
+`
+        );
         // Process any pending tool calls from previous messages
         // This handles human-in-the-loop confirmations for tools
         const processedMessages = await processToolCalls({

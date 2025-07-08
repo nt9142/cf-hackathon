@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "apps/mcp" },
+    { "path": "apps/agent" },
+  ],
+  "compilerOptions": {
+    "typeRoots": ["types", "node_modules/@types"]
+  },
+  "include": ["types/**/*.d.ts"]
+}

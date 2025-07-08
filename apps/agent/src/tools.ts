@@ -5,7 +5,6 @@
 import { tool } from "ai";
 import { z } from "zod";
 
-import type { Chat } from "./server";
 import { getCurrentAgent } from "agents";
 import { unstable_scheduleSchema } from "agents/schedule";
 
@@ -39,7 +38,7 @@ const scheduleTask = tool({
   parameters: unstable_scheduleSchema,
   execute: async ({ when, description }) => {
     // we can now read the agent context from the ALS store
-    const { agent } = getCurrentAgent<Chat>();
+    const { agent } = getCurrentAgent();
 
     function throwError(msg: string): string {
       throw new Error(msg);
@@ -73,7 +72,7 @@ const getScheduledTasks = tool({
   description: "List all tasks that have been scheduled",
   parameters: z.object({}),
   execute: async () => {
-    const { agent } = getCurrentAgent<Chat>();
+    const { agent } = getCurrentAgent();
 
     try {
       const tasks = agent!.getSchedules();
@@ -96,7 +95,7 @@ const setMemory = tool({
     value: z.string().describe("The value to store for this key"),
   }),
   execute: async ({ key, value }) => {
-    const { agent } = getCurrentAgent<Chat>();
+    const { agent } = getCurrentAgent();
     const agentState = agent!.state as { memory?: Record<string, string> };
     const currentMemory = agentState.memory || {};
 
@@ -119,7 +118,7 @@ const forgetMemory = tool({
     key: z.string().describe("The key of the memory entry to forget"),
   }),
   execute: async ({ key }) => {
-    const { agent } = getCurrentAgent<Chat>();
+    const { agent } = getCurrentAgent();
     const agentState = agent!.state as { memory?: Record<string, string> };
     const currentMemory = agentState.memory || {};
 
@@ -159,7 +158,7 @@ const removeMcpServer = tool({
     id: z.string(),
   }),
   execute: async ({ id }) => {
-    const { agent } = getCurrentAgent<Chat>();
+    const { agent } = getCurrentAgent();
     if (!agent) {
       throw new Error("No agent found");
     }
@@ -172,7 +171,7 @@ const listMcpServers = tool({
   description: "A tool to list all MCP servers",
   parameters: z.object({}),
   execute: async () => {
-    const { agent } = getCurrentAgent<Chat>();
+    const { agent } = getCurrentAgent();
     return agent!.getMcpServers();
   },
 });
@@ -187,7 +186,7 @@ const cancelScheduledTask = tool({
     taskId: z.string().describe("The ID of the task to cancel"),
   }),
   execute: async ({ taskId }) => {
-    const { agent } = getCurrentAgent<Chat>();
+    const { agent } = getCurrentAgent();
     try {
       await agent!.cancelSchedule(taskId);
       return `Task ${taskId} has been successfully canceled.`;
@@ -195,6 +194,54 @@ const cancelScheduledTask = tool({
       console.error("Error canceling scheduled task", error);
       return `Error canceling task ${taskId}: ${error}`;
     }
+  },
+});
+
+/**
+ * Invoice creation tool that requires human confirmation
+ * When invoked, this will present a form dialog to the user
+ * The actual implementation is in the executions object below
+ */
+const createInvoice = tool({
+  description: "Create a new invoice with name, description, and price",
+  parameters: z.object({
+    name: z.string().describe("The name/title of the invoice"),
+    description: z.string().describe("Description of the invoice"),
+    price: z.number().describe("The price amount for the invoice"),
+  }),
+  // Omitting execute function makes this tool require human confirmation
+});
+
+/**
+ * Tool to list all invoices
+ * This executes automatically without requiring human confirmation
+ */
+const listInvoices = tool({
+  description: "List all created invoices",
+  parameters: z.object({}),
+  execute: async () => {
+    const { agent } = getCurrentAgent();
+    const agentState = agent!.state as {
+      invoices?: Array<{
+        id: string;
+        name: string;
+        description: string;
+        price: number;
+        createdAt: string;
+      }>;
+    };
+    const invoices = agentState.invoices || [];
+
+    if (invoices.length === 0) {
+      return "No invoices found.";
+    }
+
+    return invoices
+      .map(
+        (invoice) =>
+          `ID: ${invoice.id}\nName: ${invoice.name}\nDescription: ${invoice.description}\nPrice: $${invoice.price.toFixed(2)}\nCreated: ${new Date(invoice.createdAt).toLocaleDateString()}`
+      )
+      .join("\n\n");
   },
 });
 
@@ -213,6 +260,8 @@ export const tools = {
   scheduleTask,
   getScheduledTasks,
   cancelScheduledTask,
+  createInvoice,
+  listInvoices,
 };
 
 /**
@@ -224,5 +273,43 @@ export const executions = {
   getWeatherInformation: async ({ city }: { city: string }) => {
     console.log(`Getting weather information for ${city}`);
     return `The weather in ${city} is sunny`;
+  },
+  createInvoice: async ({
+    name,
+    description,
+    price,
+  }: {
+    name: string;
+    description: string;
+    price: number;
+  }) => {
+    console.log(`Creating invoice: ${name}, ${description}, $${price}`);
+    const { agent } = getCurrentAgent();
+    const agentState = agent!.state as {
+      invoices?: Array<{
+        id: string;
+        name: string;
+        description: string;
+        price: number;
+        createdAt: string;
+      }>;
+    };
+    const currentInvoices = agentState.invoices || [];
+
+    const newInvoice = {
+      id: `invoice_${Date.now()}`,
+      name,
+      description,
+      price,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedInvoices = [...currentInvoices, newInvoice];
+
+    agent?.setState({
+      invoices: updatedInvoices,
+    });
+
+    return `Invoice created successfully!\n\nName: ${name}\nDescription: ${description}\nPrice: $${price.toFixed(2)}\nID: ${newInvoice.id}`;
   },
 };

@@ -27,6 +27,7 @@ import {
 // List of tools that require human confirmation
 const toolsRequiringConfirmation: (keyof typeof tools)[] = [
   "getWeatherInformation",
+  "createInvoice",
 ];
 
 export default function Chat() {
@@ -409,10 +410,12 @@ function HasGoogleAIKey() {
                   Google Generative AI API Key Not Configured
                 </h3>
                 <p className="text-neutral-600 dark:text-neutral-300 mb-1">
-                  Requests to the API, including from the frontend UI, will not work until a Google Generative AI API key is configured.
+                  Requests to the API, including from the frontend UI, will not
+                  work until a Google Generative AI API key is configured.
                 </p>
                 <p className="text-neutral-600 dark:text-neutral-300">
-                  Please configure a Google Generative AI API key by setting a secret named GOOGLE_GENERATIVE_AI_API_KEY. 
+                  Please configure a Google Generative AI API key by setting a
+                  secret named GOOGLE_GENERATIVE_AI_API_KEY.
                   <a
                     href="https://developers.cloudflare.com/workers/configuration/secrets/"
                     target="_blank"
