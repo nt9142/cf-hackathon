@@ -203,11 +203,12 @@ const cancelScheduledTask = tool({
  * The actual implementation is in the executions object below
  */
 const createInvoice = tool({
-  description: "Create a new invoice with name, description, and price",
+  description:
+    "Create a new expense/invoice with name, description, and price. Use this when user wants to add a new expense or create an invoice record. This will show a UI form for data entry.",
   parameters: z.object({
-    name: z.string().describe("The name/title of the invoice"),
-    description: z.string().describe("Description of the invoice"),
-    price: z.number().describe("The price amount for the invoice"),
+    name: z.string().describe("The name/title of the expense or invoice"),
+    description: z.string().describe("Description of the expense or service"),
+    price: z.number().describe("The amount/price for the expense"),
   }),
   // Omitting execute function makes this tool require human confirmation
 });
@@ -217,7 +218,8 @@ const createInvoice = tool({
  * This executes automatically without requiring human confirmation
  */
 const listInvoices = tool({
-  description: "List all created invoices",
+  description:
+    "List all local invoices/expenses created in this session. For persistent storage, use MCP server tools instead.",
   parameters: z.object({}),
   execute: async () => {
     const { agent } = getCurrentAgent();
@@ -233,7 +235,7 @@ const listInvoices = tool({
     const invoices = agentState.invoices || [];
 
     if (invoices.length === 0) {
-      return "No invoices found.";
+      return "No local invoices found in this session. Use MCP server tools to access persistent expense storage.";
     }
 
     return invoices
@@ -242,6 +244,209 @@ const listInvoices = tool({
           `ID: ${invoice.id}\nName: ${invoice.name}\nDescription: ${invoice.description}\nPrice: $${invoice.price.toFixed(2)}\nCreated: ${new Date(invoice.createdAt).toLocaleDateString()}`
       )
       .join("\n\n");
+  },
+});
+
+// Expense management tools using direct API calls
+const addExpense = tool({
+  description: "Add a new expense to persistent storage",
+  parameters: z.object({
+    amount: z.number().positive().describe("Expense amount"),
+    description: z.string().min(1).describe("Expense description"),
+    category: z.string().min(1).describe("Expense category"),
+    date: z
+      .string()
+      .optional()
+      .describe("Expense date (ISO string, defaults to current date)"),
+    currency: z.string().default("USD").describe("Currency code"),
+    tags: z.array(z.string()).optional().describe("Array of tags"),
+    paymentMethod: z.string().optional().describe("Payment method used"),
+    receipt: z.string().optional().describe("Receipt URL or reference"),
+  }),
+  execute: async ({
+    amount,
+    description,
+    category,
+    date,
+    currency,
+    tags,
+    paymentMethod,
+    receipt,
+  }) => {
+    try {
+      const response = await fetch(
+        "https://cf-hack-mcp.nt9142.workers.dev/api/expenses",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            amount,
+            description,
+            category,
+            date: date || new Date().toISOString(),
+            currency: currency || "USD",
+            tags: tags || [],
+            paymentMethod,
+            receipt,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `API Error: ${errorData.error || "Failed to add expense"}`
+        );
+      }
+
+      const data = await response.json();
+      return `Expense added successfully: ${JSON.stringify(data.expense, null, 2)}`;
+    } catch (error) {
+      return `Error adding expense: ${error instanceof Error ? error.message : "Unknown error"}`;
+    }
+  },
+});
+
+const getExpenses = tool({
+  description: "Get expenses from persistent storage with optional filters",
+  parameters: z.object({
+    category: z.string().optional().describe("Filter by category"),
+    startDate: z.string().optional().describe("Filter from date (ISO string)"),
+    endDate: z.string().optional().describe("Filter to date (ISO string)"),
+    limit: z.number().default(50).describe("Limit results"),
+  }),
+  execute: async ({ category, startDate, endDate, limit }) => {
+    try {
+      const response = await fetch(
+        "https://cf-hack-mcp.nt9142.workers.dev/api/expenses"
+      );
+
+      if (!response.ok) {
+        throw new Error(`API Error: Failed to fetch expenses`);
+      }
+
+      const data = await response.json();
+      let expenses = data.expenses || [];
+
+      // Apply filters
+      if (category) {
+        expenses = expenses.filter(
+          (expense: any) => expense.category === category
+        );
+      }
+
+      if (startDate) {
+        expenses = expenses.filter((expense: any) => expense.date >= startDate);
+      }
+
+      if (endDate) {
+        expenses = expenses.filter((expense: any) => expense.date <= endDate);
+      }
+
+      // Apply limit
+      expenses = expenses.slice(0, limit);
+
+      return `Found ${expenses.length} expenses:\n${JSON.stringify(expenses, null, 2)}`;
+    } catch (error) {
+      return `Error retrieving expenses: ${error instanceof Error ? error.message : "Unknown error"}`;
+    }
+  },
+});
+
+const updateExpense = tool({
+  description: "Update an existing expense in persistent storage",
+  parameters: z.object({
+    id: z.number().describe("Expense ID"),
+    amount: z.number().positive().optional().describe("Expense amount"),
+    description: z.string().min(1).optional().describe("Expense description"),
+    category: z.string().min(1).optional().describe("Expense category"),
+    date: z.string().optional().describe("Expense date (ISO string)"),
+    currency: z.string().optional().describe("Currency code"),
+    tags: z.array(z.string()).optional().describe("Array of tags"),
+    paymentMethod: z.string().optional().describe("Payment method used"),
+    receipt: z.string().optional().describe("Receipt URL or reference"),
+  }),
+  execute: async ({
+    id,
+    amount,
+    description,
+    category,
+    date,
+    currency,
+    tags,
+    paymentMethod,
+    receipt,
+  }) => {
+    try {
+      const updateData: any = {};
+
+      if (amount !== undefined) updateData.amount = amount;
+      if (description !== undefined) updateData.description = description;
+      if (category !== undefined) updateData.category = category;
+      if (date !== undefined) updateData.date = date;
+      if (currency !== undefined) updateData.currency = currency;
+      if (tags !== undefined) updateData.tags = tags;
+      if (paymentMethod !== undefined) updateData.paymentMethod = paymentMethod;
+      if (receipt !== undefined) updateData.receipt = receipt;
+
+      if (Object.keys(updateData).length === 0) {
+        return "No fields provided to update";
+      }
+
+      const response = await fetch(
+        `https://cf-hack-mcp.nt9142.workers.dev/api/expenses/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updateData),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `API Error: ${errorData.error || "Failed to update expense"}`
+        );
+      }
+
+      const data = await response.json();
+      return `Expense updated successfully: ${JSON.stringify(data.expense, null, 2)}`;
+    } catch (error) {
+      return `Error updating expense: ${error instanceof Error ? error.message : "Unknown error"}`;
+    }
+  },
+});
+
+const deleteExpense = tool({
+  description: "Delete an expense from persistent storage",
+  parameters: z.object({
+    id: z.number().describe("Expense ID to delete"),
+  }),
+  execute: async ({ id }) => {
+    try {
+      const response = await fetch(
+        `https://cf-hack-mcp.nt9142.workers.dev/api/expenses/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `API Error: ${errorData.error || "Failed to delete expense"}`
+        );
+      }
+
+      const data = await response.json();
+      return `Expense deleted successfully: ${data.message}`;
+    } catch (error) {
+      return `Error deleting expense: ${error instanceof Error ? error.message : "Unknown error"}`;
+    }
   },
 });
 
@@ -262,6 +467,10 @@ export const tools = {
   cancelScheduledTask,
   createInvoice,
   listInvoices,
+  addExpense,
+  getExpenses,
+  updateExpense,
+  deleteExpense,
 };
 
 /**

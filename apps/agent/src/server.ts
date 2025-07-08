@@ -41,15 +41,8 @@ export class ChatInternal extends AIChatAgent<Env> {
     onFinish: StreamTextOnFinishCallback<ToolSet>,
     options?: { abortSignal?: AbortSignal }
   ) {
-    // const mcpConnection = await this.mcp.connect(
-    //   "https://path-to-mcp-server/sse"
-    // );
-
-    // Collect all tools, including MCP tools
-    const allTools = {
-      ...tools,
-      ...this.mcp.unstable_getAITools(),
-    };
+    // Use tools directly - no MCP client needed
+    const allTools = tools;
 
     // Create a streaming response that handles both text and tool outputs
     const dataStreamResponse = createDataStreamResponse({
@@ -80,6 +73,14 @@ If the user asks to schedule a task, use the schedule tool to schedule the task.
 ${unstable_getSchedulePrompt({ date: new Date() })}
 
 If the user asks to schedule a task, use the schedule tool to schedule the task.
+
+EXPENSE MANAGEMENT:
+When the user asks to work with expenses, expenses tracking, invoice management, or financial records, you should:
+1. Use the expense tools (addExpense, getExpenses, updateExpense, deleteExpense) for persistent storage operations
+2. Use the local createInvoice tool for the UI form when creating new expenses
+3. Help users track, organize, and manage their financial records
+
+The expense tools provide direct API access to the expense storage service.
 `,
           messages: processedMessages,
           tools: allTools,
@@ -87,7 +88,6 @@ If the user asks to schedule a task, use the schedule tool to schedule the task.
             onFinish(
               args as Parameters<StreamTextOnFinishCallback<ToolSet>>[0]
             );
-            // await this.mcp.closeConnection(mcpConnection.id);
           },
           onError: (error) => {
             console.error("Error while streaming:", error);
